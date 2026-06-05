@@ -50,3 +50,25 @@ def list():
 def task(task_id):
     task = get_task(task_id)
     return render_template('task.html', task=task)
+
+@web.route("/add_task", methods=["GET", "POST"])
+def add_task():
+    if request.method == "POST":
+        title = request.form.get("title").strip()
+        genre = request.form.get("genre", "Inne")
+        validation = validate_title(title)
+        if validation is not None:
+            flash(validation, "error")
+            return render_template('add_task.html', genres=GENRES, title=title, selected_genre=genre)
+        insert_tasks([[title, 0, genre]])
+        flash("Film dodany do watchlisty!", "success")
+        return redirect(url_for('web.list'))
+    return render_template('add_task.html', genres=GENRES, title="", selected_genre="Inne")
+
+@web.route("/tasks/<int:task_id>/delete", methods=["POST"])
+def delete_task(task_id):
+    db = get_db()
+    db.execute("DELETE FROM tasks WHERE id = ?", [task_id])
+    db.commit()
+    flash("Film usunięty z listy.", "success")
+    return redirect(url_for('web.list'))
