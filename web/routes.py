@@ -72,3 +72,27 @@ def delete_task(task_id):
     db.commit()
     flash("Film usunięty z listy.", "success")
     return redirect(url_for('web.list'))
+
+@web.route("/tasks/<int:task_id>/toggle", methods=["POST"])
+def toggle_task(task_id):
+    db = get_db()
+    db.execute("UPDATE tasks SET done = NOT done WHERE id = ?", [task_id])
+    db.commit()
+    is_task_view = request.form.get("is_task_view")
+    flash("Status filmu zaktualizowany.", "success")
+    if is_task_view == "1":
+        return redirect(url_for('web.task', task_id=task_id))
+    return redirect(url_for('web.list'))
+
+@web.route("/tasks/<int:task_id>/change_title", methods=["POST"])
+def change_task_title(task_id):
+    title = request.form.get("title")
+    validation = validate_title(title)
+    if validation is not None:
+        flash(validation, "error")
+        return redirect(url_for('web.task', task_id=task_id))
+    db = get_db()
+    db.execute("UPDATE tasks SET title = ? WHERE id = ?", [title, task_id])
+    db.commit()
+    flash("Tytuł zmieniony.", "success")
+    return redirect(url_for('web.task', task_id=task_id))
