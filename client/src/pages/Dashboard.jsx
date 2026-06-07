@@ -231,7 +231,7 @@ export default function Dashboard() {
             </div>
           ) : (
         <section className="empty-state">
-        <div>🎥</div>
+       
         <h3>Brak filmów</h3>
         <p>Dodaj pierwszy film do swojej listy.</p>
         </section>
