@@ -7,13 +7,7 @@ web = Blueprint("web", __name__)
 
 GENRES = ["Akcja", "Dramat", "Komedia", "Horror", "Sci-Fi", "Thriller", "Romans", "Animacja", "Dokumentalny", "Inne"]
 
-@web.route("/")
-def index():
-    db = get_db()
-    total = db.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]
-    watched = db.execute("SELECT COUNT(*) FROM tasks WHERE done = 1").fetchone()[0]
-    recent = db.execute("SELECT id, title, done, genre, created_at FROM tasks ORDER BY created_at DESC LIMIT 5").fetchall()
-    return render_template('home.html', total=total, watched=watched, recent=recent)
+
 
 @web.route("/ping-db")
 def ping_db():

@@ -2,6 +2,9 @@ from flask import Blueprint, jsonify, request, abort
 from db.init import get_db
 from db.repository import insert_tasks
 
+
+
+
 api = Blueprint("api", __name__)
 
 @api.route("/tasks", methods=["GET"])
@@ -20,23 +23,45 @@ def api_tasks_get(task_id):
 
 @api.route("/tasks", methods=["POST"])
 def api_tasks_add():
-    data = request.get_json()
-    if not data or "title" not in data:
-        abort(400, description="Missing JSON or title")
-    title = data["title"].strip()
-    if len(title) < 4:
-        abort(400, description="Title has to have more than 3 chars")
-    db = get_db()
-    existingTask = db.execute("SELECT id FROM tasks WHERE title LIKE ?", [title]).fetchone()
-    if existingTask:
-        abort(400, description=f"Movie already exists: {title}")
-    done = 1 if data.get("done") else 0
-    genre = data.get("genre", "Inne")
-    task = [[title, done, genre]]
-    inserted_row = insert_tasks(task)[0]
-    db.commit()
-    return jsonify(dict(inserted_row)), 201
+    data = request.get_json(silent=True) or {}
 
+    title = (data.get("title") or "").strip()
+    genre = (data.get("genre") or "Inne").strip()
+    done = 1 if data.get("done") else 0
+
+    if len(title) < 4:
+        abort(400, description="Tytuł musi mieć minimum 4 znaki.")
+
+    db = get_db()
+
+    existing_task = db.execute(
+        "SELECT id FROM tasks WHERE title = ?",
+        [title],
+    ).fetchone()
+
+    if existing_task:
+        abort(400, description="Taki film już istnieje.")
+
+    cursor = db.execute(
+        """
+        INSERT INTO tasks(title, done, genre)
+        VALUES (?, ?, ?)
+        """,
+        [title, done, genre],
+    )
+
+    db.commit()
+
+    inserted_row = db.execute(
+        """
+        SELECT id, title, done, genre, created_at
+        FROM tasks
+        WHERE id = ?
+        """,
+        [cursor.lastrowid],
+    ).fetchone()
+
+    return jsonify(dict(inserted_row)), 201
 
 @api.route("/tasks/<int:task_id>", methods=["PUT", "PATCH"])
 def api_tasks_update(task_id):
