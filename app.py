@@ -18,7 +18,7 @@ app = Flask(
     static_url_path="",
 )
 
-app.config["SECRET_KEY"] = "dev-secret-change-me"
+
 
 app.register_blueprint(api, url_prefix="/api")
 
