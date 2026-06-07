@@ -142,7 +142,7 @@ export default function Dashboard() {
           </h1>
 
           <p className="hero__subtitle">
-            Prosta aplikacja do zapisywania filmów, które chcesz obejrzeć.
+             Aplikacja do zapisywania filmów, które chcesz obejrzeć.
           </p>
 
           <div className="hero__actions">
