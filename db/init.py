@@ -1,5 +1,8 @@
 import sqlite3
-from flask import g
+from flask import g, current_app
+
+import click
+import requests
 
 DATABASE = "movies.db"
 
@@ -58,3 +61,97 @@ def seed_db_comand_init(app):
             print("✔ Dodano przykładowe filmy.")
         else:
             print("Tabela nie jest pusta, pomijam seed.")
+
+##########################################
+# EXTERNAL API
+
+
+def download_data():
+    db = get_db()
+
+    api_urls = [
+        ("Akcja", "https://api.sampleapis.com/movies/action"),
+        ("Komedia", "https://api.sampleapis.com/movies/comedy"),
+        ("Dramat", "https://api.sampleapis.com/movies/drama"),
+        ("Horror", "https://api.sampleapis.com/movies/horror"),
+        ("Animacja", "https://api.sampleapis.com/movies/animation"),
+    ]
+
+    inserted_count = 0
+    skipped_count = 0
+
+    for genre, url in api_urls:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+
+        payload = response.json()
+
+        if isinstance(payload, list):
+            movies = payload
+        elif isinstance(payload, dict):
+            movies = (
+                payload.get("results")
+                or payload.get("movies")
+                or payload.get("data")
+                or []
+            )
+        else:
+            movies = []
+
+        for movie in movies[:30]:
+            if isinstance(movie, dict):
+                title = (
+                    movie.get("title")
+                    or movie.get("name")
+                    or movie.get("Title")
+                    or ""
+                )
+            elif isinstance(movie, str):
+                title = movie
+            else:
+                skipped_count += 1
+                continue
+
+            title = str(title).strip()
+
+            if len(title) < 4:
+                skipped_count += 1
+                continue
+
+            existing_movie = db.execute(
+                "SELECT id FROM tasks WHERE title = ?",
+                [title],
+            ).fetchone()
+
+            if existing_movie:
+                skipped_count += 1
+                continue
+
+            db.execute(
+                """
+                INSERT INTO tasks(title, done, genre)
+                VALUES (?, ?, ?)
+                """,
+                [title, 0, genre],
+            )
+
+            inserted_count += 1
+
+    db.commit()
+
+    return inserted_count, skipped_count
+@click.command("download-data")
+def download_data_command():
+    try:
+        inserted_count, skipped_count = download_data()
+
+        click.echo(f"Pobrano dane z API.")
+        click.echo(f"Dodano filmów: {inserted_count}")
+        click.echo(f"Pominięto duplikatów / błędnych rekordów: {skipped_count}")
+
+    except requests.RequestException as error:
+        click.echo(f"Błąd pobierania danych z API: {error}", err=True)
+
+
+def download_data_command_init(app):
+    app.cli.add_command(download_data_command)
