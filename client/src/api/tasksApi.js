@@ -9,28 +9,30 @@ async function request(path, options = {}) {
     ...options,
   });
 
+  const text = await response.text();
+
   if (!response.ok) {
     let message = "Coś poszło nie tak.";
 
     try {
-      const errorData = await response.json();
-      message = errorData.description || errorData.message || message;
+      const errorData = text ? JSON.parse(text) : null;
+      message = errorData?.description || errorData?.message || message;
     } catch {
-      try {
-        message = await response.text();
-      } catch {
-        message = "Błąd połączenia z API.";
-      }
+      message = text || message;
     }
 
     throw new Error(message);
   }
 
-  if (response.status === 204) {
+  if (!text) {
     return null;
   }
 
-  return response.json();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 }
 
 export const tasksApi = {

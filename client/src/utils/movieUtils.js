@@ -13,3 +13,11 @@ export function formatDate(dateString) {
     day: "2-digit",
   });
 }
+
+export function normalizeTask(task) {
+  return {
+    ...task,
+    done: Boolean(task.done),
+    genre: task.genre || "Inne",
+  };
+}
